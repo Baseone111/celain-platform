@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: celaine
+      POSTGRES_USER: celaine
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate the .env file first}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U celaine -d celaine']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://celaine:${POSTGRES_PASSWORD}@db:5432/celaine
+      JWT_SECRET: ${JWT_SECRET:?Generate the .env file first}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4173,http://127.0.0.1:4173}
+      DEMO_SEED: ${DEMO_SEED:-false}
+      DEMO_PAYMENTS: ${DEMO_PAYMENTS:-false}
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-}
+      STORAGE_DIR: /app/storage
+    volumes:
+      - audio:/app/storage
+    ports:
+      - '127.0.0.1:8000:8000'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      args:
+        VITE_DEMO_MODE: 'false'
+        VITE_API_URL: ''
+    ports:
+      - '127.0.0.1:4173:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  database:
+  audio:

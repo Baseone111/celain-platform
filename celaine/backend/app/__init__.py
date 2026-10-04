@@ -1,0 +1,1 @@
+"""Celaine application package."""

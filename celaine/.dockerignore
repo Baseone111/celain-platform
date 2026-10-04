@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.openai
+.sites-runtime
+backend/.venv
+backend/.pytest_cache
+backend/storage
+**/__pycache__
+**/*.db
+.env
+.env.local
+backend/.env
